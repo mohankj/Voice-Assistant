@@ -18,7 +18,6 @@ import webbrowser
 import requests
 # import datetime
 
-import playsound
 import pygame
 from gtts import gTTS
 
