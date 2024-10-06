@@ -16,6 +16,7 @@ import pyttsx3
 import os
 import webbrowser
 import requests
+import tempfile
 # import datetime
 
 import pygame
@@ -41,7 +42,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score
 
 
-from suggestive_model import train_behavior_model,predict_next_action
+from predictive_model import train_behavior_model,predict_next_action
 
 
 # ### Creating all the required functions
@@ -56,8 +57,11 @@ engine = pyttsx3.init()
 
 def speak(text):
     tts = gTTS(text=text, lang='en')
-    filename = "temp_audio.mp3"
-    tts.save(filename)
+
+    # Create a temporary file to avoid permission issues
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_file:
+        filename = temp_file.name
+        tts.save(filename)
 
     # Initialize pygame mixer
     pygame.mixer.init()
@@ -71,9 +75,9 @@ def speak(text):
         continue
 
     pygame.mixer.quit()
-    os.remove(filename)  
 
-
+    # Remove the temporary file
+    os.remove(filename)
 
 def listen():
     recognizer = sr.Recognizer()
@@ -305,9 +309,6 @@ def analyze_sentiment(text):
     return sentiment['compound']  # Returns a value between -1 and 1
 
 
-
-
-
 def ask_how_are_you():
     speak("How are you feeling today?")
     print("How are you feeling today?")
@@ -319,11 +320,6 @@ def ask_how_are_you():
     if sentiment_score < 0:  # Very negative
         speak("I hope things get better for you. Do you want to relax with some music?")
         play_song_recommendation()
-        # print("I'm sorry to hear that. Would you like to talk about it?")
-    # elif -0.5 <= sentiment_score < 0:  # Negative
-    #     speak("I hope things get better for you. Do you want to relax with some music?")
-    #     # print("I hope things get better for you. Do you want to relax with some music?")
-    #     play_song_recommendation()
     elif 0 <= sentiment_score < 0.5:  # Neutral
         speak("Thanks for sharing! Is there anything specific I can help you with?")
         # print("Thanks for sharing! Is there anything specific I can help you with?")
@@ -417,6 +413,7 @@ def date_generator():
 
 
 st.set_page_config(initial_sidebar_state="collapsed")
+
 
 styles = {
     "nav": {
@@ -514,7 +511,16 @@ if page == "Voice Assistant":
 
 # Page 3: User Activity Logs
 if page == "User Activity Logs":
-    st.title("User Activity Logs")
+    # st.title("User Activity Logs")
+
+    title_with_icons = """
+    <h1 style='display: flex; align-items: center;'>
+        <span style='font-size: 2rem;'>📊</span> 
+        <span style='font-size: 2rem;'>📅</span>
+        <span style='margin-left: 10px;'>User Activity Logs</span>
+    </h1>
+    """
+    st.markdown(title_with_icons, unsafe_allow_html=True)
 
     file_path = r"expanded_dataset.csv"
 
@@ -526,8 +532,30 @@ if page == "User Activity Logs":
 
     df = df[::-1]
 
+
+
+    # Define a mapping of user commands (labels) to icons (emojis or image URLs)
+    icon_map = {
+        "calculator": "🧮",  # Emoji for calculator
+        "music": "🎵",       # Emoji for music
+        "weather": "🌤",
+        "time": "⏰" ,
+        "date": "📅",
+        "open": "💻",
+        "search": "🔍",
+        "notepad":"📝"
+
+        # Add more mappings as needed
+    }
+
+    # Apply icons to a new column in the dataframe
+    df['icon'] = df['label'].map(icon_map)
+
+    # Combine the icon with the existing log for display
+    df['labels'] = df['icon'] + " " + df['label']
+
     # logs_table = st.table(df)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df[['command','labels','date', 'time']], use_container_width=True,hide_index=True)
 
 
 
